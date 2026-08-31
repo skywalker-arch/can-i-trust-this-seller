@@ -1,26 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Typography */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+
+  /* Light theme (leave unchanged) */
+  --background: #f7fbfc;
+  --surface: #ffffff;
+  --foreground: #071428;
+  --muted: #6b7280;
+  --accent: #0ea5a4;
+  --accent-foreground: #ffffff;
+
+  /* Utility */
+  --focus-ring: 0 0 0 4px rgba(14,165,164,0.18);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Dark theme: editorial / investigative palette */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #111111; /* page background */
+    --surface: #181818; /* primary surface */
+    --surface-2: #202020; /* secondary surface */
+    --foreground: #F5F5F2; /* primary text on dark */
+    --muted: #A8A8A8; /* secondary text on dark */
+    --accent: #14B8A6; /* restrained teal accent */
+    --accent-foreground: #062021;
+
+    /* Inputs */
+    --input-bg: #F5F5F2; /* light input background */
+    --input-text: #171717; /* dark text for inputs */
+    --input-placeholder: #777777;
+
+    /* Borders and focus */
+    --border: rgba(255,255,255,0.06);
+    --focus-ring: 0 0 0 4px rgba(20,184,166,0.12);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Theme helpers for Tailwind and components */
+:root {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --font-family-sans: var(--font-sans);
 }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Small utility tweaks (use CSS variables so Tailwind classes can override) */
+.bg-foreground { background-color: var(--color-foreground); }
+.text-background { color: var(--color-background); }
+
+/* Variable-based helpers for consistent theming */
+.text-foreground { color: var(--color-foreground) !important; }
+.text-muted { color: var(--color-muted) !important; }
+.bg-surface { background-color: var(--color-surface) !important; }
+
+/* Ensure headings use foreground color */
+h1, h2, h3, h4, h5 { color: var(--color-foreground); }
+
+/* Accent helpers */
+.btn-accent {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+/* Focus-visible styles for keyboard users */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Responsive tweaks */
+@media (max-width: 640px) {
+  main { padding: 16px; }
+  .sm\:grid-cols-2 { grid-template-columns: 1fr; }
+}
+
+/* Minor typographic scale */
+h1 { font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-weight: 600; }
+p, label, input, button { font-weight: 400; }
+
+/* Design system utilities */
+.container { max-width: 1100px; margin-left: auto; margin-right: auto; }
+.card { background: var(--color-surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: none; }
+.section { padding-top: 8px; padding-bottom: 8px; }
+.section + .section { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; }
+.section-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; color: var(--color-foreground); }
+.field { display:block; margin-bottom: 12px; }
+.field-label { display:block; font-size: 0.875rem; color: var(--color-foreground); margin-bottom:6px; }
+.input, .select, .textarea {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--input-text);
+  caret-color: var(--input-text);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.06s ease;
+}
+.input::placeholder, .select::placeholder, .textarea::placeholder { color: var(--input-placeholder); }
+.input:focus, .select:focus, .textarea:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--accent);
+}
+.input[disabled], .select[disabled], .textarea[disabled] { opacity: 0.6; }
+.divider { height:1px; background: var(--border); margin: 12px 0; }
+.btn-primary { background: var(--accent); color: var(--accent-foreground); padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.12s ease; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(20,184,166,0.08); }
+.btn-primary[disabled] { opacity: 0.6; cursor: default; transform: none; box-shadow:none; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--color-foreground); padding: 8px 12px; border-radius: 8px; }
+.muted { color: var(--color-muted) !important; }
+
+/* Risk score visual */
+.risk-card { display:flex; align-items:center; gap:16px; padding:18px; border-radius:12px; background: var(--surface); border: 1px solid var(--border); }
+.risk-score { font-weight:700; font-size:2.4rem; color: var(--color-foreground); }
+.risk-legend { display:flex; flex-direction:column; gap:4px; }
+.chip { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background: var(--surface-2); border:1px solid rgba(255,255,255,0.03); font-size:0.875rem; color: var(--color-foreground); }
+
+/* Segmented control / pill selected state using aria-pressed */
+.chip[aria-pressed="true"], .chip[aria-pressed="true"] * {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  font-weight: 600;
+  border: 1px solid var(--accent) !important;
+  box-shadow: 0 4px 10px rgba(20,184,166,0.06);
+}
+.chip svg { color: inherit; }
+
+/* Risk color helpers */
+.risk-low { background: rgba(16,185,129,0.06); color: #065f46; border: 1px solid rgba(16,185,129,0.12); }
+.risk-moderate { background: rgba(245,158,11,0.06); color: #92400e; border: 1px solid rgba(245,158,11,0.12); }
+.risk-high { background: rgba(239,68,68,0.06); color: #7f1d1d; border: 1px solid rgba(239,68,68,0.12); }
+.risk-very-high { background: rgba(185,28,28,0.12); color: #fff; border: none; }
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .card { padding: 16px; }
+  .risk-score { font-size: 1.8rem; }
+  h1 { font-size: 1.6rem; }
+}
+

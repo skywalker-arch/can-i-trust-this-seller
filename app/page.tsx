@@ -1,68 +1,80 @@
+"use client";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import { useState } from "react";
+import Form from "../components/seller-check/Form";
+import Report from "../components/assessment/Report";
+import { assess, simulate } from "../lib/risk/engine";
+import type { SellerInput } from "../types/assessment";
 
 export default function Home() {
+  const [assessment, setAssessment] = useState<any | null>(null);
+  const [lastInput, setLastInput] = useState<SellerInput | null>(null);
+  const [simulated, setSimulated] = useState<{ label: string; result: any } | null>(null);
+  const [running, setRunning] = useState(false);
+
+  function handleRun(input: SellerInput) {
+    setRunning(true);
+    // small delay to show running state
+    setTimeout(() => {
+      const a = assess(input);
+      setAssessment(a);
+      setLastInput(input);
+      setRunning(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 300);
+  }
+
+  function handleSimulate(changes: Record<string, any>, label: string) {
+    if (!lastInput) return;
+    const result = simulate(lastInput, changes);
+    setSimulated({ label, result });
+  }
+
+  function clearSimulation() {
+    setSimulated(null);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen bg-surface p-6 font-sans">
+      <main className="container px-4">
+        <header className="mb-6">
+          <div className="card flex items-center gap-4">
+            <div className="h-12 w-12 rounded-full bg-foreground flex items-center justify-center text-background font-bold">CI</div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground">Can I Trust This Seller?</h1>
+              <p className="text-sm muted mt-1">Check the evidence before you send your money.</p>
+            </div>
+          </div>
+        </header>
+
+        <section className="grid gap-8 lg:grid-cols-2">
+          <div>
+            <div className="card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Seller investigation</h2>
+                  <p className="text-sm muted mt-1">Provide what you know — we'll surface the important signals.</p>
+                </div>
+                <div>
+                  <button className="btn-ghost" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Top</button>
+                </div>
+              </div>
+
+              <div className="divider" />
+
+              <Form onRun={handleRun} />
+
+              {running && <div className="mt-3 text-sm muted">Running the check...</div>}
+            </div>
+          </div>
+
+          <div>
+            <div className="card">
+              <Report assessment={assessment} simulated={simulated} onSimulate={handleSimulate} onClearSimulation={clearSimulation} lastInput={lastInput} />
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );
