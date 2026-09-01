@@ -111,20 +111,20 @@ export default function Form({ onRun }: Props) {
         <div className="section-title">Seller history</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="field">
-            <label htmlFor="sellerHistory" className="field-label">How long does this seller's online presence appear active?</label>
+            <label htmlFor="sellerHistory" className="field-label">How long does this seller&apos;s online presence appear active?</label>
             <select
               id="sellerHistory"
               name="sellerHistory"
               className="select"
               value={sellerHistory ?? ""}
-              onChange={(e) => setSellerHistory((e.target.value as any) || null)}
+              onChange={(e) => setSellerHistory((e.target.value as unknown as SellerInput["sellerHistory"]) || null)}
             >
               <option value="">Can't verify</option>
               <option value="long_standing">Long-standing presence (consistent activity)</option>
               <option value="established">Established (several months)</option>
               <option value="new_limited">New / limited history</option>
             </select>
-            <p className="text-sm muted mt-1">If you can't verify history, choose "Can't verify" — unknown is not automatically risky.</p>
+            <p className="text-sm muted mt-1">If you can&apos;t verify history, choose "Can&apos;t verify" — unknown is not automatically risky.</p>
           </div>
 
           <div className="field">
@@ -155,9 +155,9 @@ export default function Form({ onRun }: Props) {
 
           <div className="field">
             <label htmlFor="productPhotos" className="field-label">Product photos</label>
-            <select id="productPhotos" name="productPhotos" className="select" value={productPhotos ?? ""} onChange={(e) => setProductPhotos((e.target.value as any) || null)}>
+            <select id="productPhotos" name="productPhotos" className="select" value={productPhotos ?? ""} onChange={(e) => setProductPhotos((e.target.value as unknown as SellerInput["productPhotos"]) || null)}>
               <option value="">Unknown</option>
-              <option value="own">Seller's own photos</option>
+              <option value="own">Seller&apos;s own photos</option>
               <option value="generic">Generic / reused-looking photos</option>
               <option value="not_sure">Not sure</option>
             </select>
@@ -206,12 +206,12 @@ export default function Form({ onRun }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mt-2">
+        <div className="flex items-center gap-3 mt-2">
         <button type="submit" className="btn-primary">Run the check →</button>
         <button
           type="button"
           onClick={() => {
-            setProductName(""); setSellerPrice(""); setMarketPrice(""); setAccountAge(null); setReviews(""); setVerified(null); setPhysicalLocation(null); setPaymentMethod(null); setReturnPolicy(null); setProductPhotos(null); setErrors({});
+            setProductName(""); setSellerPrice(""); setMarketPrice(""); setSellerHistory(null); setReviews(""); setVerified(null); setPhysicalLocation(null); setPaymentMethod(null); setReturnPolicy(null); setProductPhotos(null); setErrors({});
           }}
           className="btn-ghost"
         >

@@ -1,6 +1,4 @@
 "use client";
-import Image from "next/image";
-import dynamic from "next/dynamic";
 import { useState } from "react";
 import Form from "../components/seller-check/Form";
 import Report from "../components/assessment/Report";
@@ -8,9 +6,9 @@ import { assess, simulate } from "../lib/risk/engine";
 import type { SellerInput } from "../types/assessment";
 
 export default function Home() {
-  const [assessment, setAssessment] = useState<any | null>(null);
+  const [assessment, setAssessment] = useState<import("../types/assessment").Assessment | null>(null);
   const [lastInput, setLastInput] = useState<SellerInput | null>(null);
-  const [simulated, setSimulated] = useState<{ label: string; result: any } | null>(null);
+  const [simulated, setSimulated] = useState<{ label: string; result: import("../types/assessment").Assessment | null } | null>(null);
   const [running, setRunning] = useState(false);
 
   function handleRun(input: SellerInput) {
@@ -25,7 +23,7 @@ export default function Home() {
     }, 300);
   }
 
-  function handleSimulate(changes: Record<string, any>, label: string) {
+  function handleSimulate(changes: Partial<SellerInput>, label: string) {
     if (!lastInput) return;
     const result = simulate(lastInput, changes);
     setSimulated({ label, result });
@@ -57,7 +55,7 @@ export default function Home() {
                   <p className="text-sm muted mt-1">Provide what you know — we'll surface the important signals.</p>
                 </div>
                 <div>
-                  <button className="btn-ghost" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Top</button>
+                  <button className="btn-ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Top</button>
                 </div>
               </div>
 

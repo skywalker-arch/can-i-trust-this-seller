@@ -5,7 +5,7 @@ import Checklist from "./Checklist";
 import type { Assessment } from "../../types/assessment";
 import type { SellerInput } from "../../types/assessment";
 
-function PriceSlider({ lastInput, onSimulate }: { lastInput: SellerInput; onSimulate?: (changes: Record<string, any>, label: string) => void; }) {
+function PriceSlider({ lastInput, onSimulate }: { lastInput: SellerInput; onSimulate?: (changes: Partial<SellerInput>, label: string) => void; }) {
   const seller = lastInput.sellerPrice as number;
   const market = lastInput.marketPrice as number;
   const [pct, setPct] = React.useState(0);
@@ -42,10 +42,10 @@ function PriceSlider({ lastInput, onSimulate }: { lastInput: SellerInput; onSimu
 
 type Props = {
   assessment: Assessment | null;
-  onSimulate?: (changes: Record<string, any>, label: string) => void;
+  onSimulate?: (changes: Partial<SellerInput>, label: string) => void;
   simulated?: { label: string; result: Assessment | null } | null;
   onClearSimulation?: () => void;
-  lastInput?: any | null;
+  lastInput?: SellerInput | null;
 };
 
 function RiskLevelPill({ level }: { level: Assessment["riskLevel"] }) {
@@ -211,23 +211,25 @@ export default function Report({ assessment, onSimulate, simulated, onClearSimul
           <div className="rounded border p-4" role="region" aria-label="Simulations">
           <h3 className="font-semibold">What would change the outcome?</h3>
           <p className="text-sm text-muted mt-2">Try small changes to see how the score would react (simulations only).</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button aria-label="Simulate pay on delivery" className="rounded border px-3 py-1 text-sm focus:outline-none focus-visible:ring-2" onClick={() => onSimulate?.({ paymentMethod: "pay_on_delivery" }, "Pay on delivery")}>If pay-on-delivery</button>
-            <button aria-label="Simulate add return policy" className="rounded border px-3 py-1 text-sm focus:outline-none focus-visible:ring-2" onClick={() => onSimulate?.({ returnPolicy: true }, "Add return policy")}>If return policy existed</button>
-            <button aria-label="Simulate no seller price" className="rounded border px-3 py-1 text-sm focus:outline-none focus-visible:ring-2" onClick={() => onSimulate?.({ sellerPrice: undefined }, "Remove seller price")}>If no seller price</button>
-          </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button aria-label="Simulate pay on delivery" className="rounded border px-3 py-1 text-sm focus:outline-none focus-visible:ring-2" onClick={() => onSimulate?.({ paymentMethod: "pay_on_delivery" }, "Pay on delivery")}>If pay-on-delivery</button>
+              <button aria-label="Simulate add return policy" className="rounded border px-3 py-1 text-sm focus:outline-none focus-visible:ring-2" onClick={() => onSimulate?.({ returnPolicy: true }, "Add return policy")}>If return policy existed</button>
+              <button aria-label="Simulate no seller price" className="rounded border px-3 py-1 text-sm focus:outline-none focus-visible:ring-2" onClick={() => onSimulate?.({ sellerPrice: undefined }, "Remove seller price")}>If no seller price</button>
+            </div>
         </div>
 
         <div className="rounded border p-4" role="region" aria-label="Quick presets">
           <h4 className="font-semibold">Quick presets</h4>
           <p className="text-sm muted mt-2">One-click presets to explore common what-if scenarios.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button aria-label="Preset: marketplace checkout" className="btn-ghost" onClick={() => onSimulate?.({ paymentMethod: "marketplace_checkout" }, "Marketplace checkout")}>Marketplace checkout</button>
-            <button aria-label="Preset: deposit plus balance" className="btn-ghost" onClick={() => onSimulate?.({ paymentMethod: "deposit_balance" }, "Deposit + balance on delivery")}>Deposit + balance</button>
-            <button aria-label="Preset: full upfront" className="btn-ghost" onClick={() => onSimulate?.({ paymentMethod: "full_upfront" }, "Full payment upfront")}>Full upfront (risky)</button>
-            <button aria-label="Preset: add return policy" className="btn-ghost" onClick={() => onSimulate?.({ returnPolicy: true }, "Add return policy")}>Add return policy</button>
-            <button aria-label="Preset: seller photos" className="btn-ghost" onClick={() => onSimulate?.({ productPhotos: "own" }, "Seller's own photos")}>Seller's photos</button>
-            <button aria-label="Preset: generic photos" className="btn-ghost" onClick={() => onSimulate?.({ productPhotos: "generic" }, "Generic photos")}>Generic photos</button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button aria-label="Preset: marketplace checkout" className="btn-ghost" onClick={() => onSimulate?.({ paymentMethod: "marketplace_checkout" }, "Marketplace checkout")}>Marketplace checkout</button>
+              <button aria-label="Preset: card protected" className="btn-ghost" onClick={() => onSimulate?.({ paymentMethod: "card_protected" }, "Card / protected")}>Card / protected</button>
+              <button aria-label="Preset: mobile money" className="btn-ghost" onClick={() => onSimulate?.({ paymentMethod: "mobile_money" }, "Mobile money")}>Mobile money</button>
+              <button aria-label="Preset: bank transfer" className="btn-ghost" onClick={() => onSimulate?.({ paymentMethod: "bank_transfer" }, "Bank transfer")}>Bank transfer</button>
+              <button aria-label="Preset: crypto" className="btn-ghost" onClick={() => onSimulate?.({ paymentMethod: "cryptocurrency" }, "Cryptocurrency")}>Cryptocurrency</button>
+              <button aria-label="Preset: add return policy" className="btn-ghost" onClick={() => onSimulate?.({ returnPolicy: true }, "Add return policy")}>Add return policy</button>
+              <button aria-label="Preset: seller photos" className="btn-ghost" onClick={() => onSimulate?.({ productPhotos: "own" }, "Seller&apos;s own photos")}>Seller&apos;s photos</button>
+              <button aria-label="Preset: generic photos" className="btn-ghost" onClick={() => onSimulate?.({ productPhotos: "generic" }, "Generic photos")}>Generic photos</button>
           </div>
         </div>
 

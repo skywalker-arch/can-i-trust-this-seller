@@ -1,11 +1,12 @@
 import { assess } from "../lib/risk/engine";
+import type { SellerInput } from "../types/assessment";
 
-function makeBase(overrides: Record<string, any> = {}) {
+function makeBase(overrides: Partial<SellerInput> = {}): SellerInput {
   return {
     productName: "Phone",
     sellerPrice: 50000,
     marketPrice: 90000,
-    accountAge: ">3y",
+    sellerHistory: "long_standing",
     reviews: 100,
     verified: true,
     physicalLocation: true,
@@ -13,7 +14,7 @@ function makeBase(overrides: Record<string, any> = {}) {
     returnPolicy: true,
     productPhotos: "own",
     ...overrides,
-  } as any;
+  } as SellerInput;
 }
 
 test("Scenario 1: established seller => low risk", () => {
@@ -22,23 +23,23 @@ test("Scenario 1: established seller => low risk", () => {
 });
 
 test("Scenario 2: very risky seller => very high risk", () => {
-  const a = assess(makeBase({ accountAge: "<3m", reviews: 0, verified: false, physicalLocation: false, paymentMethod: "full_upfront", returnPolicy: false, sellerPrice: 10000 }));
+  const a = assess(makeBase({ sellerHistory: "new_limited", reviews: 0, verified: false, physicalLocation: false, paymentMethod: "bank_transfer", returnPolicy: false, sellerPrice: 10000 }));
   expect(a.riskScore).toBeGreaterThanOrEqual(75);
 });
 
 test("Scenario 3: verified but full upfront => elevated risk", () => {
-  const a = assess(makeBase({ verified: true, paymentMethod: "full_upfront", returnPolicy: false }));
+  const a = assess(makeBase({ verified: true, paymentMethod: "bank_transfer", returnPolicy: false }));
   expect(a.riskScore).toBeGreaterThanOrEqual(50);
 });
 
 test("Scenario 4: missing market price => skip price and lower confidence", () => {
   const input = makeBase({ marketPrice: undefined });
-  const a = assess(input as any);
+  const a = assess(input);
   expect(a.confidence).not.toBe("HIGH");
 });
 
 test("Scenario 5: only a few fields provided => low confidence", () => {
-  const a = assess({ productName: "Old Book" } as any);
+  const a = assess({ productName: "Old Book" } as SellerInput);
   expect(a.confidence).toBe("LOW");
 });
 
