@@ -20,23 +20,28 @@ export type Assessment = {
   totalSignals: number;
   warningSigns: RiskFactor[];
   positiveSignals: RiskFactor[];
+  unknownSignals: RiskFactor[];
   recommendations: string[];
   questionsToAsk: string[];
+  checklist?: string[];
 };
 
 export type SellerInput = {
   productName: string;
   sellerPrice?: number | null;
   marketPrice?: number | null;
-  accountAge?: "<3m" | "3-12m" | "1-3y" | ">3y" | null;
+  sellerHistory?: "long_standing" | "established" | "new_limited" | "unknown" | null;
   reviews?: number | null;
   verified?: boolean | null;
   physicalLocation?: boolean | null;
   paymentMethod?:
     | "pay_on_delivery"
     | "marketplace_checkout"
-    | "deposit_balance"
-    | "full_upfront"
+    | "card_protected"
+    | "mobile_money"
+    | "bank_transfer"
+    | "cryptocurrency"
+    | "other_unclear"
     | null;
   returnPolicy?: boolean | null;
   productPhotos?: "own" | "generic" | "not_sure" | null;

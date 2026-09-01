@@ -13,124 +13,142 @@ function clamp(v: number, a = 0, b = MAX_SCORE) {
 }
 
 export function assess(input: SellerInput): Assessment {
-  const factors: RiskFactor[] = [];
-  const positives: RiskFactor[] = [];
+  const warningSigns: RiskFactor[] = [];
+  const positiveSignals: RiskFactor[] = [];
+  const unknownSignals: RiskFactor[] = [];
 
   // Track provided signals
-  const signalKeys = [
+  const signalPresence = [
     input.sellerPrice != null,
     input.marketPrice != null,
-    !!input.paymentMethod,
-    !!input.accountAge,
+    input.paymentMethod != null,
+    input.sellerHistory != null,
     input.reviews != null,
     input.verified != null,
     input.physicalLocation != null,
     input.returnPolicy != null,
-    !!input.productPhotos,
+    input.productPhotos != null,
   ];
-  let providedSignals = signalKeys.filter(Boolean).length;
-  const totalSignals = signalKeys.length;
-  // If market price is missing, reduce confidence because a key signal is absent
-  if (!input.marketPrice) {
-    providedSignals = Math.max(0, providedSignals - 1);
-  }
+  const providedSignals = signalPresence.filter(Boolean).length;
+  const totalSignals = signalPresence.length;
 
   let score = 0;
 
-  // Price gap (up to 25)
+  // Price gap (up to 30)
   const pricePercent = calculatePriceGapPercent(input.marketPrice, input.sellerPrice);
   if (pricePercent !== null) {
     let points = 0;
     const absPct = Math.abs(pricePercent);
-    if (pricePercent < 0) {
-      // seller above market -> small or no risk
+    if (pricePercent <= 0) {
+      // seller at or above market -> no negative points
       points = 0;
     } else {
       if (absPct < 5) points = 0;
-      else if (absPct < 15) points = 7;
-      else if (absPct < 30) points = 15;
-      else points = 25;
+      else if (absPct < 15) points = 6;
+      else if (absPct < 30) points = 14;
+      else points = 30;
     }
     if (points > 0) {
-      factors.push({
+      warningSigns.push({
         factor: "price_gap",
         points,
         severity: points >= 20 ? "high" : points >= 10 ? "medium" : "low",
-        title: "Price gap",
-        reason: `Seller price is ${pricePercent.toFixed(1)}% below the stated market price.`,
+        title: "Price difference",
+        reason: `Seller price is ${pricePercent.toFixed(1)}% below the reference price. Significant differences deserve investigation.`,
       });
       score += points;
     } else {
-      positives.push({
+      positiveSignals.push({
         factor: "price_gap",
         points: 0,
         severity: "low",
-        title: "Price gap",
-        reason: `Price is within expected range (${pricePercent.toFixed(1)}%).`,
+        title: "Price in line with market",
+        reason: `Price is within expected range (${pricePercent.toFixed(1)}% difference).`,
       });
     }
   }
 
-  // Payment method (up to 20)
-  if (input.paymentMethod) {
-    const mapping: Record<string, { pts: number; title: string }> = {
-      pay_on_delivery: { pts: 0, title: "Pay on delivery" },
-      marketplace_checkout: { pts: 0, title: "Marketplace checkout" },
-      deposit_balance: { pts: 10, title: "Deposit + balance on delivery" },
-      full_upfront: { pts: 20, title: "Full payment upfront" },
+  // Payment safety mapping (higher points = more warning)
+  if (input.paymentMethod == null) {
+    unknownSignals.push({
+      factor: "payment",
+      points: 0,
+      severity: "low",
+      title: "Payment method unknown",
+      reason: "Payment method was not specified. Check buyer protection before paying.",
+    });
+  } else {
+    const mapping: Record<string, { pts: number; title: string; note: string }> = {
+      pay_on_delivery: { pts: 0, title: "Pay on delivery", note: "Pay on delivery typically offers strong buyer protection." },
+      marketplace_checkout: { pts: 0, title: "Marketplace checkout", note: "Marketplace checkout often provides buyer protection and dispute resolution." },
+      card_protected: { pts: 0, title: "Card / protected payment", note: "Card or protected payment methods often allow chargebacks or disputes." },
+      mobile_money: { pts: 10, title: "Mobile money before delivery", note: "Mobile money may have limited dispute options depending on provider." },
+      bank_transfer: { pts: 20, title: "Bank transfer", note: "Bank transfers are often difficult to reverse; limited buyer protection." },
+      cryptocurrency: { pts: 25, title: "Cryptocurrency", note: "Cryptocurrency transactions are typically irreversible and provide little buyer protection." },
+      other_unclear: { pts: 10, title: "Other / unclear", note: "Unclear payment method — verify buyer protection." },
     };
     const m = mapping[input.paymentMethod];
     if (m.pts > 0) {
-      factors.push({
+      warningSigns.push({
         factor: "payment",
         points: m.pts,
-        severity: m.pts >= 15 ? "high" : "medium",
+        severity: m.pts >= 20 ? "high" : "medium",
         title: m.title,
-        reason: m.title === "Full payment upfront" ? "The seller requires payment before delivery." : "Partial payment before delivery increases risk.",
+        reason: m.note,
       });
       score += m.pts;
     } else {
-      positives.push({
+      positiveSignals.push({
         factor: "payment",
         points: 0,
         severity: "low",
         title: m.title,
-        reason: "Safer payment method compared with upfront-only options.",
+        reason: m.note,
       });
     }
   }
 
-  // Account age (up to 15)
-  if (input.accountAge) {
-    const map: Record<string, { pts: number; title: string }> = {
-      "<3m": { pts: 15, title: "Account under 3 months" },
-      "3-12m": { pts: 10, title: "Account 3–12 months" },
-      "1-3y": { pts: 5, title: "Account 1–3 years" },
-      ">3y": { pts: 0, title: "Account over 3 years" },
+  // Seller history: treat unknown as UNKNOWN signal (do not penalize)
+  if (input.sellerHistory == null || input.sellerHistory === "unknown") {
+    unknownSignals.push({
+      factor: "seller_history",
+      points: 0,
+      severity: "low",
+      title: "Seller history unknown",
+      reason: "Not enough information to verify how long the seller has been active.",
+    });
+  } else {
+    const map: Record<string, { pts: number; title: string; note?: string }> = {
+      long_standing: { pts: 0, title: "Long-standing presence", note: "Consistent activity over a long period." },
+      established: { pts: 3, title: "Established", note: "Active for several months or more." },
+      new_limited: { pts: 14, title: "New / limited history", note: "Relatively little history to inspect." },
+      unknown: { pts: 0, title: "Unknown", note: "Can't verify the seller history." },
     };
-    const m = map[input.accountAge];
+    const m = map[input.sellerHistory];
     if (m.pts > 0) {
-      factors.push({
-        factor: "account_age",
+      warningSigns.push({
+        factor: "seller_history",
         points: m.pts,
         severity: m.pts >= 10 ? "high" : "medium",
         title: m.title,
-        reason: `Short account history (${input.accountAge}). Newer accounts are less established.`,
+        reason: m.note || "",
       });
       score += m.pts;
     } else {
-      positives.push({
-        factor: "account_age",
+      positiveSignals.push({
+        factor: "seller_history",
         points: 0,
         severity: "low",
         title: m.title,
-        reason: "Long account history reduces this particular risk.",
+        reason: m.note || "",
       });
     }
   }
 
-  // Reviews (up to 15)
-  if (typeof input.reviews === "number") {
+  // Reviews
+  if (typeof input.reviews !== "number") {
+    unknownSignals.push({ factor: "reviews", points: 0, severity: "low", title: "Reviews unknown", reason: "Number of reviews not specified." });
+  } else {
     const r = input.reviews;
     let pts = 0;
     if (r < 0) pts = 0;
@@ -139,7 +157,7 @@ export function assess(input: SellerInput): Assessment {
     else if (r <= 50) pts = 5;
     else pts = 0;
     if (pts > 0) {
-      factors.push({
+      warningSigns.push({
         factor: "reviews",
         points: pts,
         severity: pts >= 10 ? "high" : "medium",
@@ -148,139 +166,100 @@ export function assess(input: SellerInput): Assessment {
       });
       score += pts;
     } else {
-      positives.push({
-        factor: "reviews",
-        points: 0,
-        severity: "low",
-        title: "Established reviews",
-        reason: `Seller has ${r} reviews, which indicates established activity.`,
-      });
+      positiveSignals.push({ factor: "reviews", points: 0, severity: "low", title: "Established reviews", reason: `Seller has ${r} reviews.` });
     }
   }
 
-  // Return policy (up to 10)
-  if (typeof input.returnPolicy === "boolean") {
-    if (!input.returnPolicy) {
-      const pts = 10;
-      factors.push({
-        factor: "return_policy",
-        points: pts,
-        severity: "medium",
-        title: "No return policy",
-        reason: "No return or refund policy was provided.",
-      });
-      score += pts;
-    } else {
-      positives.push({
-        factor: "return_policy",
-        points: 0,
-        severity: "low",
-        title: "Return policy provided",
-        reason: "A stated return policy improves buyer protections.",
-      });
-    }
+  // Return policy
+  if (typeof input.returnPolicy !== "boolean") {
+    unknownSignals.push({ factor: "return_policy", points: 0, severity: "low", title: "Return policy unknown", reason: "Return/refund policy not specified." });
+  } else if (!input.returnPolicy) {
+    const pts = 10;
+    warningSigns.push({ factor: "return_policy", points: pts, severity: "medium", title: "No return policy", reason: "No return or refund policy was provided." });
+    score += pts;
+  } else {
+    positiveSignals.push({ factor: "return_policy", points: 0, severity: "low", title: "Return policy provided", reason: "A stated return policy improves buyer protections." });
   }
 
-  // Physical location (up to 5)
-  if (typeof input.physicalLocation === "boolean") {
-    if (!input.physicalLocation) {
-      const pts = 5;
-      factors.push({
-        factor: "physical_location",
-        points: pts,
-        severity: "low",
-        title: "No physical location",
-        reason: "No verifiable physical location was provided.",
-      });
-      score += pts;
-    } else {
-      positives.push({
-        factor: "physical_location",
-        points: 0,
-        severity: "low",
-        title: "Physical location provided",
-        reason: "Presence of a physical location increases confidence.",
-      });
-    }
+  // Physical location
+  if (typeof input.physicalLocation !== "boolean") {
+    unknownSignals.push({ factor: "physical_location", points: 0, severity: "low", title: "Physical location unknown", reason: "No clear physical location provided." });
+  } else if (!input.physicalLocation) {
+    const pts = 6;
+    warningSigns.push({ factor: "physical_location", points: pts, severity: "low", title: "No physical location", reason: "No verifiable physical location was provided." });
+    score += pts;
+  } else {
+    positiveSignals.push({ factor: "physical_location", points: 0, severity: "low", title: "Physical location provided", reason: "Presence of a physical location increases confidence." });
   }
 
-  // Verified (reduces risk slightly, up to -5)
-  if (typeof input.verified === "boolean") {
-    if (input.verified) {
-      const pts = -5;
-      positives.push({
-        factor: "verified",
-        points: pts,
-        severity: "low",
-        title: "Verified account",
-        reason: "Platform verification is a positive signal but not decisive.",
-      });
-      score += pts;
-    }
+  // Verified account: positive signal when present; absence is neutral/unknown
+  if (input.verified === true) {
+    positiveSignals.push({ factor: "verified", points: 0, severity: "low", title: "Verified account", reason: "Platform verification is a positive signal but not decisive." });
+  } else if (input.verified === false) {
+    unknownSignals.push({ factor: "verified", points: 0, severity: "low", title: "Not verified", reason: "Seller is not verified on the platform." });
+  } else {
+    unknownSignals.push({ factor: "verified", points: 0, severity: "low", title: "Verification unknown", reason: "Verification status not provided." });
   }
 
-  // Product photos (up to 5)
-  if (input.productPhotos) {
-    if (input.productPhotos === "generic") {
-      const pts = 5;
-      factors.push({
-        factor: "photos",
-        points: pts,
-        severity: "low",
-        title: "Generic or reused photos",
-        reason: "Photos appear generic or reused; verify they match the actual item.",
-      });
-      score += pts;
-    } else if (input.productPhotos === "not_sure") {
-      const pts = 2;
-      factors.push({
-        factor: "photos",
-        points: pts,
-        severity: "low",
-        title: "Uncertain photos",
-        reason: "It's unclear whether the photos are seller-provided.",
-      });
-      score += pts;
-    } else {
-      positives.push({
-        factor: "photos",
-        points: 0,
-        severity: "low",
-        title: "Seller photos",
-        reason: "Seller-provided photos are a positive signal when clearly original.",
-      });
-    }
+  // Product photos
+  if (!input.productPhotos) {
+    unknownSignals.push({ factor: "photos", points: 0, severity: "low", title: "Photos unknown", reason: "No information about product photos." });
+  } else if (input.productPhotos === "generic") {
+    const pts = 6;
+    warningSigns.push({ factor: "photos", points: pts, severity: "low", title: "Generic or reused photos", reason: "Photos appear generic or reused; verify they match the actual item." });
+    score += pts;
+  } else if (input.productPhotos === "not_sure") {
+    unknownSignals.push({ factor: "photos", points: 0, severity: "low", title: "Photos uncertain", reason: "It's unclear whether the photos are seller-provided." });
+  } else {
+    positiveSignals.push({ factor: "photos", points: 0, severity: "low", title: "Seller photos", reason: "Seller-provided photos are a positive signal when clearly original." });
   }
 
   // Ensure score is within 0..100
   score = clamp(Math.round(score));
 
-  // Build recommendations and questions based on top factors
+  // Build recommendations, questions and checklist from top warnings and unknowns
   const recommendations: string[] = [];
   const questions: string[] = [];
+  const checklist: string[] = [];
 
-  const sorted = factors.slice().sort((a, b) => b.points - a.points);
-  for (const f of sorted.slice(0, 5)) {
+  const sortedWarnings = warningSigns.slice().sort((a, b) => b.points - a.points);
+  for (const f of sortedWarnings.slice(0, 6)) {
     if (f.factor === "payment") {
-      recommendations.push("Ask whether you can use pay-on-delivery or marketplace checkout.");
-      questions.push("Can I pay on delivery or via the marketplace checkout?");
+      recommendations.push("Consider using payment methods with buyer protection (marketplace checkout or card).\n");
+      questions.push("Does this payment method provide buyer protection or a dispute process?");
+      checklist.push("Check whether the payment method allows you to dispute or recover funds");
     }
     if (f.factor === "price_gap") {
-      recommendations.push("Confirm the item's condition and ask why the price is lower than market.");
-      questions.push("Why is the price significantly lower than the typical market price?");
+      recommendations.push("Confirm the item's condition and why the price is lower than comparable listings.");
+      questions.push("Why is the price significantly lower than the reference price?");
+      checklist.push("Compare the price with other sellers and ask why it's lower");
     }
-    if (f.factor === "account_age") {
-      recommendations.push("Request more seller history or references.");
-      questions.push("Can you provide earlier listings or references from past buyers?");
+    if (f.factor === "seller_history") {
+      recommendations.push("Ask for older listings, references, or indicators of consistent activity.");
+      questions.push("Can you provide earlier listings, posts, or references from past buyers?");
+      checklist.push("Look through older posts, customer interactions, and previous product activity");
     }
     if (f.factor === "return_policy") {
       recommendations.push("Ask for a written return or refund policy for this sale.");
       questions.push("What is your return or refund policy if the item is not as described?");
+      checklist.push("Confirm the seller's return/refund policy before paying");
     }
     if (f.factor === "photos") {
-      recommendations.push("Request recent, item-specific photos or serial numbers.");
-      questions.push("Can you provide additional photos, serial numbers, or IMEI (for electronics)?");
+      recommendations.push("Request recent, item-specific photos or video showing the item and date.");
+      questions.push("Can you provide additional photos, serial numbers, or a short video of the product?");
+      checklist.push("Ask for a current photo or short video of the exact item being sold");
     }
+  }
+
+  // Unknown signals produce checklist items rather than points
+  for (const u of unknownSignals.slice(0, 8)) {
+    if (u.factor === "seller_history") checklist.push("Try to verify the seller's online history (posts, followers, timestamps)");
+    if (u.factor === "payment") checklist.push("Confirm which payment methods are accepted and whether they provide buyer protection");
+    if (u.factor === "return_policy") checklist.push("Ask the seller to state their return and refund terms in writing");
+    if (u.factor === "physical_location") checklist.push("Verify the seller's physical location or address if possible");
+    if (u.factor === "verified") checklist.push("Check whether the account shows platform verification or linked profiles");
+    if (u.factor === "photos") checklist.push("Request recent photos or a video to confirm the item is real and current");
+    if (u.factor === "reviews") checklist.push("Look for buyer comments, replies, or external reviews to assess reputation");
   }
 
   // Confidence
@@ -290,8 +269,8 @@ export function assess(input: SellerInput): Assessment {
   else if (pct >= 0.4) confidence = "MEDIUM";
   else confidence = "LOW";
 
-  // If market price is missing, reduce confidence one step (e.g. HIGH -> MEDIUM)
-  if (!input.marketPrice) {
+  // If many unknowns (market price or payment unknown), reduce confidence
+  if (!input.marketPrice || input.paymentMethod == null) {
     if (confidence === "HIGH") confidence = "MEDIUM";
     else if (confidence === "MEDIUM") confidence = "LOW";
   }
@@ -302,17 +281,18 @@ export function assess(input: SellerInput): Assessment {
   else if (score <= 49) riskLevel = "MODERATE RISK";
   else if (score <= 74) riskLevel = "HIGH RISK";
   else riskLevel = "VERY HIGH RISK";
-
   return {
     riskScore: score,
     riskLevel,
     confidence,
     providedSignals,
     totalSignals,
-    warningSigns: factors,
-    positiveSignals: positives,
+    warningSigns,
+    positiveSignals,
+    unknownSignals,
     recommendations,
     questionsToAsk: questions,
+    checklist,
   } as Assessment;
 }
 

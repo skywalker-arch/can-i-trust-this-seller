@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
-import { CheckCircle, AlertTriangle, ArrowRight, ArrowDown, ArrowUp } from "lucide-react";
+import { CheckCircle, AlertTriangle } from "lucide-react";
+import Checklist from "./Checklist";
 import type { Assessment } from "../../types/assessment";
 import type { SellerInput } from "../../types/assessment";
 
@@ -77,10 +78,11 @@ export default function Report({ assessment, onSimulate, simulated, onClearSimul
     <section aria-live="polite" className="space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div style={{ flex: 1 }}>
-          <div className="text-xs muted uppercase tracking-wide">INVESTIGATION COMPLETE</div>
-          <div className="risk-card mt-2">
+          <div className="text-xs muted uppercase tracking-wide">SELLER CHECK</div>
+          <div className="text-sm muted">Your pre-purchase assessment</div>
+          <div className="risk-card mt-3">
             <div>
-              <div className="risk-score">{assessment.riskScore} / 100</div>
+              <div className="risk-score">{assessment.riskScore}</div>
             </div>
             <div className="risk-legend">
               <div className="text-sm font-semibold">{assessment.riskLevel}</div>
@@ -89,18 +91,45 @@ export default function Report({ assessment, onSimulate, simulated, onClearSimul
                 <RiskLevelPill level={assessment.riskLevel} />
               </div>
             </div>
-            <div style={{ marginLeft: 'auto' }}>
-              <div className="chip">Provided signals: <strong style={{ marginLeft:8 }}>{assessment.providedSignals}/{assessment.totalSignals}</strong></div>
+            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+              <div className="text-sm muted">Provided signals</div>
+              <div className="chip" style={{ marginTop: 6 }}><strong>{assessment.providedSignals}/{assessment.totalSignals}</strong></div>
             </div>
           </div>
           <div className="mt-3">
-            <h3 className="text-lg font-semibold">Summary</h3>
-            <p className="text-sm muted mt-1">{assessment.warningSigns.length} warning sign{assessment.warningSigns.length === 1 ? '' : 's'} · {assessment.positiveSignals.length} positive signal{assessment.positiveSignals.length === 1 ? '' : 's'}.</p>
+            <h3 className="text-lg font-semibold">Assessment</h3>
+            <p className="text-sm muted mt-1">Decision: <strong>{assessment.riskLevel}</strong> · Score: <strong>{assessment.riskScore} / 100</strong></p>
           </div>
         </div>
       </header>
 
       <div className="grid gap-4">
+        <div className="rounded border p-4" role="region" aria-label="What we found">
+          <h3 className="font-semibold">What we found</h3>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded p-3 bg-surface border">
+              <div className="text-sm font-semibold">Positive signals</div>
+              <div className="text-sm muted mt-2">{assessment.positiveSignals.length} found</div>
+              <ul className="mt-3 text-sm">
+                {assessment.positiveSignals.map(p => <li key={p.factor}>✓ {p.title}</li>)}
+              </ul>
+            </div>
+            <div className="rounded p-3 bg-surface border">
+              <div className="text-sm font-semibold">Warning signals</div>
+              <div className="text-sm muted mt-2">{assessment.warningSigns.length} found</div>
+              <ul className="mt-3 text-sm">
+                {assessment.warningSigns.map(w => <li key={w.factor}>⚠ {w.title}</li>)}
+              </ul>
+            </div>
+            <div className="rounded p-3 bg-surface border">
+              <div className="text-sm font-semibold">Unknown signals</div>
+              <div className="text-sm muted mt-2">{assessment.unknownSignals?.length ?? 0} items</div>
+              <ul className="mt-3 text-sm">
+                {(assessment.unknownSignals ?? []).map(u => <li key={u.factor}>? {u.title}</li>)}
+              </ul>
+            </div>
+          </div>
+        </div>
         {simulated && simulated.result && (
           <div className="rounded border p-4 bg-surface" role="region" aria-label="Simulation result">
             <div className="flex items-start justify-between">
@@ -130,41 +159,37 @@ export default function Report({ assessment, onSimulate, simulated, onClearSimul
           </div>
         )}
         {assessment.warningSigns.length > 0 && (
-            <div className="rounded border p-4" role="region" aria-label="Warning signs">
-            <h3 className="font-semibold">Warning signs</h3>
-            <ul className="mt-3 space-y-3" role="list">
-              {assessment.warningSigns.map((f) => (
-                <li key={f.factor} className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-medium">{f.title}</div>
-                    <div className="text-sm text-muted">{f.reason}</div>
-                  </div>
-                  <div className="text-sm font-semibold text-rose-600">+{f.points}</div>
-                </li>
-              ))}
-            </ul>
+          <div className="rounded border p-4" role="region" aria-label="Most important warning">
+            <h3 className="font-semibold">Most important warning</h3>
+            <div className="mt-3">
+              <div className="text-sm font-medium">{assessment.warningSigns[0].title}</div>
+              <div className="text-sm muted mt-1">{assessment.warningSigns[0].reason}</div>
+            </div>
+            <div className="mt-3 text-sm">Why this matters</div>
+            <div className="mt-1 text-sm muted">{assessment.warningSigns[0].reason}</div>
           </div>
         )}
 
-        {assessment.positiveSignals.length > 0 && (
-            <div className="rounded border p-4 bg-surface" role="region" aria-label="Positive signals">
-            <h3 className="font-semibold">Positive signals</h3>
-            <ul className="mt-3 space-y-2 text-sm text-foreground">
-              {assessment.positiveSignals.map((p) => (
-                <li key={p.factor}>✓ {p.title}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Recommendations and Why This Matters are shown near warnings */}
 
-          <div className="rounded border p-4" role="region" aria-label="Recommendations">
-          <h3 className="font-semibold">Recommendations</h3>
-          <ul className="mt-3 list-disc pl-5 text-sm text-muted">
+        <div className="rounded border p-4" role="region" aria-label="Why this matters and recommendations">
+          <h3 className="font-semibold">Why this matters</h3>
+          <div className="text-sm muted mt-2">The most important findings and their implications.</div>
+          <ul className="mt-3 text-sm">
+            {(assessment.warningSigns.slice(0,3)).map((w) => (
+              <li key={w.factor} className="mb-2">
+                <div className="font-medium">⚠ {w.title}</div>
+                <div className="text-sm muted">{w.reason}</div>
+              </li>
+            ))}
+          </ul>
+          <h4 className="mt-3 font-semibold">Recommendations</h4>
+          <ul className="mt-2 list-disc pl-5 text-sm text-muted">
             {assessment.recommendations.length > 0 ? assessment.recommendations.map((r, i) => <li key={i}>{r}</li>) : <li>No specific recommendations.</li>}
           </ul>
         </div>
 
-          <div className="rounded border p-4" role="region" aria-label="Questions to ask the seller">
+        <div className="rounded border p-4" role="region" aria-label="Questions to ask the seller">
           <h3 className="font-semibold">Questions to ask the seller</h3>
           <ul className="mt-3 list-none text-sm space-y-2">
             {assessment.questionsToAsk.length > 0 ? (
@@ -176,6 +201,12 @@ export default function Report({ assessment, onSimulate, simulated, onClearSimul
             )}
           </ul>
         </div>
+
+          <div className="rounded border p-4" role="region" aria-label="Before you pay checklist">
+            <h3 className="font-semibold">Before you pay</h3>
+            <p className="text-sm muted mt-2">Actionable checklist based on the warnings and unknown signals. Tick off items as you verify them.</p>
+              <Checklist items={assessment.checklist ?? []} />
+          </div>
 
           <div className="rounded border p-4" role="region" aria-label="Simulations">
           <h3 className="font-semibold">What would change the outcome?</h3>

@@ -10,7 +10,7 @@ export default function Form({ onRun }: Props) {
   const [productName, setProductName] = useState("");
   const [sellerPrice, setSellerPrice] = useState<string>("");
   const [marketPrice, setMarketPrice] = useState<string>("");
-  const [accountAge, setAccountAge] = useState<SellerInput["accountAge"]>(null);
+  const [sellerHistory, setSellerHistory] = useState<SellerInput["sellerHistory"]>(null);
   const [reviews, setReviews] = useState<string>("");
   const [verified, setVerified] = useState<boolean | null>(null);
   const [physicalLocation, setPhysicalLocation] = useState<boolean | null>(null);
@@ -46,7 +46,7 @@ export default function Form({ onRun }: Props) {
       productName: productName.trim(),
       sellerPrice: parseNumber(sellerPrice),
       marketPrice: parseNumber(marketPrice),
-      accountAge,
+      sellerHistory,
       reviews: reviews ? Number(reviews) : null,
       verified,
       physicalLocation,
@@ -111,20 +111,20 @@ export default function Form({ onRun }: Props) {
         <div className="section-title">Seller history</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="field">
-            <label htmlFor="accountAge" className="field-label">Account age</label>
+            <label htmlFor="sellerHistory" className="field-label">How long does this seller's online presence appear active?</label>
             <select
-              id="accountAge"
-              name="accountAge"
+              id="sellerHistory"
+              name="sellerHistory"
               className="select"
-              value={accountAge ?? ""}
-              onChange={(e) => setAccountAge((e.target.value as any) || null)}
+              value={sellerHistory ?? ""}
+              onChange={(e) => setSellerHistory((e.target.value as any) || null)}
             >
-              <option value="">Unknown</option>
-              <option value="<3m">Less than 3 months</option>
-              <option value="3-12m">3–12 months</option>
-              <option value="1-3y">1–3 years</option>
-              <option value=">3y">3+ years</option>
+              <option value="">Can't verify</option>
+              <option value="long_standing">Long-standing presence (consistent activity)</option>
+              <option value="established">Established (several months)</option>
+              <option value="new_limited">New / limited history</option>
             </select>
+            <p className="text-sm muted mt-1">If you can't verify history, choose "Can't verify" — unknown is not automatically risky.</p>
           </div>
 
           <div className="field">
@@ -185,6 +185,24 @@ export default function Form({ onRun }: Props) {
               <button aria-pressed={physicalLocation === null} type="button" onClick={() => setPhysicalLocation(null)} className={`chip ${physicalLocation === null ? 'bg-foreground text-background' : ''}`}>Unknown</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-title">Payment & buyer protection</div>
+        <div className="field">
+          <label className="field-label">How will you pay the seller?</label>
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button type="button" aria-pressed={paymentMethod === 'pay_on_delivery'} onClick={() => setPaymentMethod('pay_on_delivery')} className={`chip ${paymentMethod === 'pay_on_delivery' ? 'bg-foreground text-background' : ''}`}>Pay on delivery</button>
+            <button type="button" aria-pressed={paymentMethod === 'marketplace_checkout'} onClick={() => setPaymentMethod('marketplace_checkout')} className={`chip ${paymentMethod === 'marketplace_checkout' ? 'bg-foreground text-background' : ''}`}>Marketplace checkout</button>
+            <button type="button" aria-pressed={paymentMethod === 'card_protected'} onClick={() => setPaymentMethod('card_protected')} className={`chip ${paymentMethod === 'card_protected' ? 'bg-foreground text-background' : ''}`}>Card / protected payment</button>
+            <button type="button" aria-pressed={paymentMethod === 'mobile_money'} onClick={() => setPaymentMethod('mobile_money')} className={`chip ${paymentMethod === 'mobile_money' ? 'bg-foreground text-background' : ''}`}>Mobile money before delivery</button>
+            <button type="button" aria-pressed={paymentMethod === 'bank_transfer'} onClick={() => setPaymentMethod('bank_transfer')} className={`chip ${paymentMethod === 'bank_transfer' ? 'bg-foreground text-background' : ''}`}>Bank transfer</button>
+            <button type="button" aria-pressed={paymentMethod === 'cryptocurrency'} onClick={() => setPaymentMethod('cryptocurrency')} className={`chip ${paymentMethod === 'cryptocurrency' ? 'bg-foreground text-background' : ''}`}>Cryptocurrency</button>
+            <button type="button" aria-pressed={paymentMethod === 'other_unclear'} onClick={() => setPaymentMethod('other_unclear')} className={`chip ${paymentMethod === 'other_unclear' ? 'bg-foreground text-background' : ''}`}>Other / unclear</button>
+            <button type="button" aria-pressed={paymentMethod === null} onClick={() => setPaymentMethod(null)} className={`chip ${paymentMethod === null ? 'bg-foreground text-background' : ''}`}>Unknown</button>
+          </div>
+          <p className="text-sm muted mt-2">Select the payment method you expect to use. This helps the tool indicate the level of buyer protection.</p>
         </div>
       </div>
 
